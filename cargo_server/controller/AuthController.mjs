@@ -1,4 +1,7 @@
 import asyncHandler from "express-async-handler";
+import { auth as firebaseAuth   } from "../services/firebase.mjs";
+import generateToken from "../utils/generateToken.mjs";
+import User from "../models/userModels.mjs";
 
 
 const authUser = asyncHandler(async (req, res) => {
@@ -49,10 +52,53 @@ const authUser = asyncHandler(async (req, res) => {
     // }
 });
 
+const registerUser = asyncHandler(async (req, res) => {
+    const { firstName, lastName, email, password, isAdmin } = req.body;
+    
+    
+    const {
+        user: { emailVerified },
+      } = await firebaseAuth.createUserWithEmailAndPassword(email, "password");
+      await firebaseAuth.currentUser.sendEmailVerification();
+
+    // const {
+    //     user: { emailVerified },
+    //   } = await createUserWithEmailAndPassword(auth, email, password);
+    // await firebaseAuth.currentUser.sendEmailVerification();
+  
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      res.status(400);
+      throw new Error("User already exists.");
+    }
+  
+    const user = await User.create({
+      firstName,
+      lastName,
+      email,
+      isAdmin: isAdmin || false,
+    });
+  
+    if (user) {
+      res.status(201).json({
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        verified: emailVerified,
+        token: generateToken(user._id),
+      });
+    } else {
+      res.status(400);
+      throw new Error("Invalid user data");
+    }
+  });
+
 
 export {
     authUser,
-    // registerUser,
+    registerUser,
     // getUsers,
     // deleteUser,
     // sendEmailVerification,

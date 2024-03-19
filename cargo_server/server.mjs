@@ -15,7 +15,7 @@ db(config.MONGO_URI, app);
 app.get('/', (req, res) => {
   res.send('Hello, World!');
 });
-app.use("/api/auth", userRoutes);
+app.use("/api/auth", AuthRoutes);
 
 
 // Start the server
